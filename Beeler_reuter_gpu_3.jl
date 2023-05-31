@@ -134,7 +134,7 @@ function crank_nicolson(Δv, u, a, c, bM)
     @inbounds Δv[n1,n2] = a * u[n1,n2] + c * ( u[n1-1,n2] + u[n1,n2-1] ) 
     
     # LHS
-    return reshape(vec( Δv ) \ bM, (n1,n2)) #.- u
+    return reshape(vec( Δv ) \ bM, (n1,n2)) .- u
 end
 
 
@@ -330,15 +330,16 @@ p = zeros(N,N);     # the external stimulus, 0 initially
 deriv_gpu = BeelerReuterGpu(u0, 0.1, 0.001);
 prob = ODEProblem(deriv_gpu, u0, (0.0, 4000.0), p);
 
-i = init(prob, CVODE_BDF(linear_solver=:GMRES), adaptive=false, dt=0.001)
+# i = init(prob, CVODE_BDF(linear_solver=:GMRES), adaptive=false, dt=0.001)
 
 # @time
-# sol = solve(prob, CVODE_BDF(linear_solver=:GMRES), adaptive=false, dt=0.001, maxiters=Int(1e15), # callback=cbs, tstops=[tstop1[1],tstop2[1]],
-#     saveat=1, progress = true, progress_steps = 100); 
+sol = solve(prob, CVODE_BDF(linear_solver=:GMRES), adaptive=false, dt=0.001, maxiters=Int(1e15), # callback=cbs, tstops=[tstop1[1],tstop2[1]],
+    saveat=1, progress = true, progress_steps = 100); 
 # @ diff_coef=0.1
 # results: LARGE spiral wave, no fast breakup
 # Time: 0:01:39
 
+#### High res
 
 # using Plots
 
@@ -351,45 +352,47 @@ i = init(prob, CVODE_BDF(linear_solver=:GMRES), adaptive=false, dt=0.001)
 
 # mp4(anim, "./heatmap.mp4", fps=15)
 
-# using UnicodePlots
-# # heatmap(sol.u[end], colormap_lim=(-180,90))
+#### Low res
 
-# function move_up(s::AbstractString)
-#     move_up_n_lines(n) = "\u1b[$(n)F"
-#     # actually string_height - 1, but we're assuming cursor is on the last line
-#     string_height = length(collect(eachmatch(r"\n", s)))
-#     print(move_up_n_lines(string_height))
-#     nothing
-# end
+using UnicodePlots
+# heatmap(sol.u[end], colormap_lim=(-180,90))
 
-# function animate(frames; frame_delay = 0)
-#     print("\u001B[?25l") # hide cursor
-#     for frame in frames[1:end-1]
-#         print(frame)
-#         sleep(frame_delay)
-#         move_up(string(frame))
-#     end
-#     print(frames[end])
-#     print("\u001B[?25h") # visible cursor
-#     nothing
-# end
+function move_up(s::AbstractString)
+    move_up_n_lines(n) = "\u1b[$(n)F"
+    # actually string_height - 1, but we're assuming cursor is on the last line
+    string_height = length(collect(eachmatch(r"\n", s)))
+    print(move_up_n_lines(string_height))
+    nothing
+end
 
-# # frames = [heatmap(sol.u[i], colorbar_lim=(-180,90), ylabel=string(i))  for i in range(1,length(sol.u))]
-# using ThreadsX
-# frames = ThreadsX.collect([heatmap(sol.u[i], colorbar_lim=(-180,90), ylabel=string(i))  for i in range(1,length(sol.u))]);
+function animate(frames; frame_delay = 0)
+    print("\u001B[?25l") # hide cursor
+    for frame in frames[1:end-1]
+        print(frame)
+        sleep(frame_delay)
+        move_up(string(frame))
+    end
+    print(frames[end])
+    print("\u001B[?25h") # visible cursor
+    nothing
+end
 
-# animate(frames; frame_delay = 0)
+# frames = [heatmap(sol.u[i], colorbar_lim=(-180,90), ylabel=string(i))  for i in range(1,length(sol.u))]
+using ThreadsX
+frames = ThreadsX.collect([heatmap(sol.u[i], colorbar_lim=(-180,90), ylabel=string(i))  for i in range(1,length(sol.u))]);
 
-# #frames2 = [densityplot(collect(range(1,192;step=1)),vec(sol.u[i][:,[80]]), ylim=(-100,80)) for i in range(1,length(sol.u))]
-# frames2 = [lineplot(collect(range(1,192;step=1)),vec(sol.u[i][:,[80]]), canvas=BrailleCanvas, ylim=(-100,80)) for i in range(1,length(sol.u))]
+animate(frames; frame_delay = 0)
 
-# animate(frames2; frame_delay = 0.001)
+#frames2 = [densityplot(collect(range(1,192;step=1)),vec(sol.u[i][:,[80]]), ylim=(-100,80)) for i in range(1,length(sol.u))]
+frames2 = [lineplot(collect(range(1,192;step=1)),vec(sol.u[i][:,[80]]), canvas=BrailleCanvas, ylim=(-100,80)) for i in range(1,length(sol.u))]
 
-# global sol = []
-# global u = fill(v0, (N, N)
-# global du = zeros(N,N)
-# for i in range(1,100;step=0.001)
-#     push!(sol, deriv_gpu(du, u, p, i))
+animate(frames2; frame_delay = 0.001)
+
+
+
+
+
+
 
 
 

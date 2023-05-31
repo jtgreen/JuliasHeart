@@ -55,7 +55,7 @@ using LinearAlgebra, SparseArrays
 #####################################################################################################################
 ### Simple matrix inversion, native solution; large matrix, SPARSE
 const v0 = 0.0f0
-const D = 0.01f0
+const D = 0.01f0 # diffusion coefficient
 const v1 = 100.0f0
 
 const h = 202#16*12;
@@ -64,7 +64,6 @@ u0 = fill(v0, (h, h));
 u0[95:105,95:105] .= v1;   # a small square in the middle of the domain
 
 dt = 0.001
-D = 0.01 # diffusion coefficient
 
 a = 1+(D*2*dt/dh^2)
 c = -D*dt/(2*dh^2)
@@ -143,13 +142,13 @@ function rhs(u, a, c)
     return du
 end
 
-# du = []
-# push!(du, u0)
-# push!(du, reshape(vec(rhs(u0, a_, c_)) \ bM, (h,h)))
-# for i in range(1,100;step=dt)
+du = []
+push!(du, u0)
+push!(du, reshape(vec(rhs(u0, a_, c_)) \ bM, (h,h)))
+for i in range(1,100;step=dt)
 
-#     push!(du, reshape(vec(rhs(du[end], a_, c_)) \ bM, (h,h)))
-# end
+    push!(du, reshape(vec(rhs(du[end], a_, c_)) \ bM, (h,h)))
+end
 
 #############################################################################################################
 
@@ -166,37 +165,37 @@ end
 
 # mp4(anim, "./heatmap.mp4", fps=15)
 
-##########################################################################################################################################
-### Low res plot
+#########################################################################################################################################
+## Low res plot
 
-# using UnicodePlots
-# # heatmap(sol.u[end], colormap_lim=(-180,90))
+using UnicodePlots
+# heatmap(sol.u[end], colormap_lim=(-180,90))
 
-# function move_up(s::AbstractString)
-#     move_up_n_lines(n) = "\u1b[$(n)F"
-#     # actually string_height - 1, but we're assuming cursor is on the last line
-#     string_height = length(collect(eachmatch(r"\n", s)))
-#     print(move_up_n_lines(string_height))
-#     nothing
-# end
+function move_up(s::AbstractString)
+    move_up_n_lines(n) = "\u1b[$(n)F"
+    # actually string_height - 1, but we're assuming cursor is on the last line
+    string_height = length(collect(eachmatch(r"\n", s)))
+    print(move_up_n_lines(string_height))
+    nothing
+end
 
-# function animate(frames; frame_delay = 0)
-#     print("\u001B[?25l") # hide cursor
-#     for frame in frames[1:end-1]
-#         print(frame)
-#         sleep(frame_delay)
-#         move_up(string(frame))
-#     end
-#     print(frames[end])
-#     print("\u001B[?25h") # visible cursor
-#     nothing
-# end
+function animate(frames; frame_delay = 0)
+    print("\u001B[?25l") # hide cursor
+    for frame in frames[1:end-1]
+        print(frame)
+        sleep(frame_delay)
+        move_up(string(frame))
+    end
+    print(frames[end])
+    print("\u001B[?25h") # visible cursor
+    nothing
+end
 
-# # frames = [heatmap(sol.u[i], colorbar_lim=(-180,90), ylabel=string(i))  for i in range(1,length(sol.u))]
-# using ThreadsX
-# #frames = ThreadsX.collect([heatmap(sol.u[i], colorbar_lim=(-180,90), ylabel=string(i))  for i in range(1,length(sol.u))]);
-# frames = ThreadsX.collect([heatmap(du[i], colorbar_lim=(0,100), ylabel=string(i))  for i in range(1,length(du); step=80)]);
+# frames = [heatmap(sol.u[i], colorbar_lim=(-180,90), ylabel=string(i))  for i in range(1,length(sol.u))]
+using ThreadsX
+#frames = ThreadsX.collect([heatmap(sol.u[i], colorbar_lim=(-180,90), ylabel=string(i))  for i in range(1,length(sol.u))]);
+frames = ThreadsX.collect([heatmap(du[i], colorbar_lim=(0,100), ylabel=string(i))  for i in range(1,length(du); step=80)]);
 
-# animate(frames; frame_delay = 0)
+animate(frames; frame_delay = 0)
 
-# #########################################################################################################################################
+#########################################################################################################################################
